@@ -4,6 +4,8 @@ let comment = [];
 
 let data = [];
 let length = 0;
+
+
 let scrape = async () => {
   const browser = await puppeteer.launch({
     headless: false
@@ -22,11 +24,21 @@ let scrape = async () => {
   });
 
   //LOGS IN with username/password
-  await page.type("#username", "username   ", { delay: 10 });
-  await page.type("#password", "passwordhere", { delay: 10 });
+  await page.type("#username", "user    ", { delay: 10 });
+  await page.type("#password", "pass    ", { delay: 10 });
   await page.click("input.button1");
 
   let pageInc = 0;
+
+  
+  console.log(this.page);
+  await page.waitForNavigation();
+  await page.goto(
+    `https://forum.median-xl.com/tradegold.php?sort_id=0&start=${pageInc * 25}`,
+    {
+      waitUntil: "domcontentloaded"
+    }
+  );
 
   //This will be ~2000, 3 for now just for debugging
   while (pageInc < 3) {
@@ -41,7 +53,6 @@ let scrape = async () => {
 
       //with this commented I get a "PAGE IS NOT DEFINED"
       //and with it active I get "Execution context was destroyed, most likely because of a navigation."
-      page.waitForNavigation();
 
       //Will cycle through length of data
       length = document.querySelectorAll(".bg1").length();
