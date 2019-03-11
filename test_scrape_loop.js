@@ -1,10 +1,6 @@
 const puppeteer = require("puppeteer");
-let price = [];
-let comment = [];
-
-let data = [];
-let length = 0;
-
+let fs = require("fs");
+let allData = "";
 
 let scrape = async () => {
   const browser = await puppeteer.launch({
@@ -24,66 +20,67 @@ let scrape = async () => {
   });
 
   //LOGS IN with username/password
-  await page.type("#username", "user    ", { delay: 10 });
-  await page.type("#password", "pass    ", { delay: 10 });
-  await page.click("input.button1");
+  await page.type("#username", "name", { delay: 10 });
+  await page.type("#password", "pass", { delay: 10 });
+  page.click("input.button1");
 
-  let pageInc = 0;
+  let howManyPages = -1;
 
-  
-  console.log(this.page);
-  await page.waitForNavigation();
-  await page.goto(
-    `https://forum.median-xl.com/tradegold.php?sort_id=0&start=${pageInc * 25}`,
-    {
-      waitUntil: "domcontentloaded"
-    }
-  );
+  while (howManyPages < 2) {
+    howManyPages++;
+    console.log(howManyPages);
+    await page.waitForNavigation({ waitUntil: "domcontentloaded" });
 
-  //This will be ~2000, 3 for now just for debugging
-  while (pageInc < 3) {
-    const result = await page.evaluate(() => {
-      page.goto(
-        `https://forum.median-xl.com/tradegold.php?sort_id=0&start=${pageInc *
-          25}`,
-        {
-          waitUntil: "domcontentloaded"
-        }
-      );
+    //This will be ~2000, 3 for now just for debugging
 
-      //with this commented I get a "PAGE IS NOT DEFINED"
-      //and with it active I get "Execution context was destroyed, most likely because of a navigation."
-
-      //Will cycle through length of data
-      length = document.querySelectorAll(".bg1").length();
-
-      for (i = 0; i < length; i++) {
-        price += document.querySelectorAll(":scope div.coins.coins-embed")[i];
-
-        comment += document.querySelectorAll(
-          ":scope tr > td:nth-last-of-type(2)"
-        )[i];
+    await page.goto(
+      `https://forum.median-xl.com/tradegold.php?sort_id=0&start=${howManyPages *
+        25}`,
+      {
+        waitUntil: "domcontentloaded"
       }
+    );
+
+    const result = await page.evaluate(() => {
+      let stringData = "";
+
+      let price = [];
+      let comment = [];
+
+      price = $("div.coins.coins-embed")
+        .toArray()
+        .map(function(i) {
+          return i.innerText;
+        });
+      comment = $("tr > td:nth-last-of-type(2)")
+        .toArray()
+        .map(function(i) {
+          return i.innerText.replace("Comment", "");
+        });
+
+      for (i = 0; i < price.length; i++) {
+        stringData += "\n" + price[i] + " ::: " + comment[i];
+      }
+
+      this.allData += stringData;
+      stringData = this.allData;
+
       //gets all prices and comments on the page - store in array
-      data.push({
-        price,
-        comment
-      });
-
-      pageInc++;
-
-      //reset for next page
-      price = [];
-      comment = [];
+      return {
+        stringData
+      };
     });
-    pageInc++;
-
-    return result;
   }
 
-  browser.close();
+  return this.allData;
 };
 
 scrape().then(value => {
-  console.log(value);
+  fs.writeFile("./data.json", value.stringData, function(err) {
+    if (err) {
+      return console.log(err);
+    }
+  });
+
+  console.log(value.stringData);
 });
