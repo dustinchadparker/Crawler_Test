@@ -28,11 +28,10 @@ let scrape = async pageStartNum => {
       waitUntil: "domcontentloaded"
     });
     //LOGS IN with username/password
-    await page.type("#username", "user", { delay: 10 });
-    await page.type("#password", "pass", { delay: 10 });
+    await page.type("#username", "usernameGoesHere", { delay: 10 });
+    await page.type("#password", "passwordGoesHere", { delay: 10 });
     page.click("input.button1");
     this.loggedIn = true;
-    console.log(this.loggedIn);
   }
 
   await page.waitForNavigation({ waitUntil: "domcontentloaded" });
@@ -80,5 +79,4 @@ scrape(pageStartNum).then(value => {
       return console.log(err);
     }
   });
-  console.log(value);
 });
