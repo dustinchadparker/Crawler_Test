@@ -1,86 +1,84 @@
 const puppeteer = require("puppeteer");
 let fs = require("fs");
-let allData = "";
 
-let scrape = async () => {
+let pageStartNum = 0; //page to start on
+const PAGES_TO_MINE = 5; //pages to mine
+let loggedIn = false;
+
+//this creates data.json and makes it empty from last run
+fs.writeFile("./data.json", "", function(err) {
+  if (err) {
+    return console.log(err);
+  }
+});
+
+let scrape = async pageStartNum => {
+  let pageStartNums = pageStartNum;
+
+  //launches a new browser window (currently my problem)
   const browser = await puppeteer.launch({
     headless: false
   });
-  const page = await browser.newPage();
+  let stringData = "";
 
-  //goes to main page
-  await page.goto(
-    "https://forum.median-xl.com/tradegold.php?sort_id=0&start=0",
-    { waitUntil: "domcontentloaded" }
-  );
+  const page = await browser.newPage(); //creates new page
+  //checks to see if user is logged in
+  if (!loggedIn) {
+    await page.goto("https://forum.median-xl.com/ucp.php?mode=login", {
+      waitUntil: "domcontentloaded"
+    });
+    //LOGS IN with username/password
+    await page.type("#username", "user", { delay: 10 });
+    await page.type("#password", "pass", { delay: 10 });
+    page.click("input.button1");
+    this.loggedIn = true;
+    console.log(this.loggedIn);
+  }
 
-  //clicks the LOGIN button
-  await page.click("#nav-main > li:nth-child(2)", {
-    waitUntil: "domcontentloaded"
-  });
+  await page.waitForNavigation({ waitUntil: "domcontentloaded" });
 
-  //LOGS IN with username/password
-  await page.type("#username", "name", { delay: 10 });
-  await page.type("#password", "pass", { delay: 10 });
-  page.click("input.button1");
-
-  let howManyPages = -1;
-
-  while (howManyPages < 2) {
-    howManyPages++;
-    console.log(howManyPages);
-    await page.waitForNavigation({ waitUntil: "domcontentloaded" });
-
-    //This will be ~2000, 3 for now just for debugging
-
+  //loops through pages
+  while (pageStartNums < PAGES_TO_MINE) {
+    //navigates to page and waits for DOMContent
     await page.goto(
-      `https://forum.median-xl.com/tradegold.php?sort_id=0&start=${howManyPages *
+      `https://forum.median-xl.com/tradegold.php?sort_id=0&start=${pageStartNums *
         25}`,
       {
         waitUntil: "domcontentloaded"
       }
     );
+    //wait time just in case. 1 second seems to be enough. Uncomment if program fails
+    // await page.waitFor(1000);
 
-    const result = await page.evaluate(() => {
-      let stringData = "";
+    //gets all prices
+    let price = await page.$$eval("tr > td:nth-last-of-type(2)", el =>
+      el.map(i => i.innerText)
+    );
 
-      let price = [];
-      let comment = [];
+    //gets all comments
+    let comment = await page.$$eval("tr > td:nth-last-of-type(2)", el =>
+      el.map(i => i.innerText)
+    );
 
-      price = $("div.coins.coins-embed")
-        .toArray()
-        .map(function(i) {
-          return i.innerText;
-        });
-      comment = $("tr > td:nth-last-of-type(2)")
-        .toArray()
-        .map(function(i) {
-          return i.innerText.replace("Comment", "");
-        });
+    //Will cycle through arrays of data and store in stringData
+    for (i = 0; i < price.length; i++) {
+      stringData += "\n" + price[i] + " ::: " + comment[i];
+    }
 
-      for (i = 0; i < price.length; i++) {
-        stringData += "\n" + price[i] + " ::: " + comment[i];
-      }
-
-      this.allData += stringData;
-      stringData = this.allData;
-
-      //gets all prices and comments on the page - store in array
-      return {
-        stringData
-      };
-    });
+    pageStartNums++;
   }
 
-  return this.allData;
+  //closes page; change page to 'browser' if you want it to close browser when done
+  page.close();
+  return stringData;
 };
 
-scrape().then(value => {
-  fs.writeFile("./data.json", value.stringData, function(err) {
+//calls the scrape function and passes in pageStart
+scrape(pageStartNum).then(value => {
+  fs.appendFile("./data.json", value, function(err) {
     if (err) {
       return console.log(err);
     }
   });
-
-  console.log(value.stringData);
+  console.log(value);
 });
