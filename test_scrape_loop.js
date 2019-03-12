@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer");
 let fs = require("fs");
 
 let pageStartNum = 0; //page to start on
-const PAGES_TO_MINE = 5; //pages to mine
+const PAGES_TO_MINE = 1; //pages to mine
 let loggedIn = false;
 
 //this creates data.json and makes it empty from last run
@@ -28,7 +28,7 @@ let scrape = async pageStartNum => {
       waitUntil: "domcontentloaded"
     });
     //LOGS IN with username/password
-    await page.type("#username", "usernameGoesHere", { delay: 10 });
+    await page.type("#username", "userNameGoesHere", { delay: 10 });
     await page.type("#password", "passwordGoesHere", { delay: 10 });
     page.click("input.button1");
     this.loggedIn = true;
@@ -50,7 +50,7 @@ let scrape = async pageStartNum => {
     // await page.waitFor(1000);
 
     //gets all prices
-    let price = await page.$$eval("tr > td:nth-last-of-type(2)", el =>
+    let price = await page.$$eval("div.coins.coins-embed", el =>
       el.map(i => i.innerText)
     );
 
