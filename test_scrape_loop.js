@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer");
 let fs = require("fs");
 
 let pageStartNum = 0; //page to start on
-const PAGES_TO_MINE = 1; //pages to mine
+const PAGES_TO_MINE = 2; //pages to mine
 let loggedIn = false;
 
 //this creates data.json and makes it empty from last run
@@ -15,7 +15,7 @@ fs.writeFile("./data.json", "", function(err) {
 let scrape = async pageStartNum => {
   let pageStartNums = pageStartNum;
 
-  //launches a new browser window (currently my problem)
+  //launches a new browser window
   const browser = await puppeteer.launch({
     headless: false
   });
@@ -28,8 +28,8 @@ let scrape = async pageStartNum => {
       waitUntil: "domcontentloaded"
     });
     //LOGS IN with username/password
-    await page.type("#username", "userNameGoesHere", { delay: 10 });
-    await page.type("#password", "passwordGoesHere", { delay: 10 });
+    await page.type("#username", "USERNAMEHERE", { delay: 10 });
+    await page.type("#password", "PASSWORDHERE", { delay: 10 });
     page.click("input.button1");
     this.loggedIn = true;
   }
@@ -59,16 +59,33 @@ let scrape = async pageStartNum => {
       el.map(i => i.innerText)
     );
 
+    let time = await page.$$eval(
+      "td:nth-child(5)",
+      el => el.map(i => i.innerText)
+    );
+
     //Will cycle through arrays of data and store in stringData
-    for (i = 0; i < price.length; i++) {
-      stringData += "\n" + price[i] + " ::: " + comment[i];
+    for (let i = 0; i < price.length; i++) {
+      stringData +=
+        "\n\n" +
+        i +
+        ":::" +
+        "\n" +
+        "Coins: " +
+        price[i] +
+        "\n" +
+        "Comment: " +
+        comment[i] +
+        "\n" +
+        "Time: " +
+        time[i];
     }
 
     pageStartNums++;
   }
 
   //closes page; change page to 'browser' if you want it to close browser when done
-  page.close();
+  browser.close();
   return stringData;
 };
 
